@@ -33,6 +33,7 @@ Build a deep learning model that combines:
 The transformer’s output (for text features).
 Additional embeddings for other categorical features.
 Fully connected layers that integrate all features and produce predictions for the target classes.
+
 Training Configuration:
 
 Configure an optimizer (like AdamW), compute class weights to handle imbalanced data, and set up a learning rate scheduler.
