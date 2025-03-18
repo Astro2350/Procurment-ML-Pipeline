@@ -10,16 +10,16 @@ Preprocessing Steps:
 ------------------------------------------------
 
 Data Loading and Cleaning:
-Load the raw CSV files (one for categories and one for training data).
+Load the raw CSV files (one for the category hierarchy and one for training data - consists of the usual ap_row and vendors' primary category).
 Standardize column names to a consistent format.
 
 Data Merging and Feature Engineering:
-Merge the training data with the categories data using a common key.
+Merge the training data with the categories data using a common key (category id).
 Combine text fields (like name, description, and memo) into a single text feature.
-Apply text cleaning—converting text to lowercase and removing unwanted characters. (Previously, stopwords removal and lemmatization were applied, but those can be omitted if needed.)
+Apply text cleaning—converting text to lowercase and removing unwanted characters. (Previously, stopwords removal and lemmatization were applied, but those are emitted in this setup - HCA has fairly clean data.)
 
 Target Variable Processing:
-Encode the target labels (categories) into numerical format.
+Encode the target labels (matched categories) into numerical format.
 Filter out classes that have only one sample to avoid issues during training.
 Re‑encode the filtered labels so they form a continuous range.
 
@@ -46,7 +46,7 @@ Fully connected layers that integrate all features and produce predictions for t
 
 Training Configuration:
 Configure an optimizer (like AdamW), compute class weights to handle imbalanced data, and set up a learning rate scheduler.
-Optionally, set up mixed precision training if a GPU is available.
+Optionally, set up mixed precision training if a GPU is available (....it definitley will be with AWS Sagemaker but not this run through).
 
 Training Loop:
 Iterate over the training data in batches, feed the data through the model, calculate loss (using cross-entropy), and update model weights.
