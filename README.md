@@ -3,7 +3,7 @@
 # What does each level in a category describe?
 ------------------------------------------------
 
-## HierarchicalCategoryModel—that combines DistilBERT’s text embeddings with learned embeddings for structured categorical and hierarchical features to classify transactions into a detailed multi-level category tree
+## Hierarchical Category Model - combines DistilBERT’s text embeddings with learned embeddings for structured categorical and hierarchical features to classify transactions into a detailed multi-level category tree
 
 ------------------------------------------------
 Preprocessing Steps:
