@@ -1,7 +1,5 @@
 # CT-Train
 ------------------------------------------------
-# What does each level in a category describe?
-------------------------------------------------
 
 ## Hierarchical Category Model - combines DistilBERT’s text embeddings with learned embeddings for structured categorical and hierarchical features to classify transactions into a detailed multi-level category tree
 
