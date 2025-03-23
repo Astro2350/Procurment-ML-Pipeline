@@ -1,7 +1,7 @@
 # HierCat-XL
 ------------------------------------------------
 
-## DistilHier - machine learning pipeline to classify financial transactions into hierarchical categories by combining text analysis (using DistilBERT) with structured data (like transaction amounts and category IDs). It incrementally learns new categories, evaluates accuracy using metrics and visualizations, and neatly organizes training progress with logs and checkpoints.
+## DistilHier Model - machine learning pipeline to classify financial transactions into hierarchical categories by combining text analysis (using DistilBERT) with structured data (like transaction amounts and category IDs). It incrementally learns new categories, evaluates accuracy using metrics and visualizations, and neatly organizes training progress with logs and checkpoints.
 
 ------------------------------------------------
 Preprocessing Steps:
