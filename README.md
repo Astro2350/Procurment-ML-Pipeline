@@ -1,7 +1,7 @@
-# CT-Train
+# HierCat-XL
 ------------------------------------------------
 
-## Hierarchical Category Model - combines DistilBERT’s text embeddings with learned embeddings for structured categorical and hierarchical features to classify transactions into a detailed multi-level category tree
+## DistilHier - machine learning pipeline to classify financial transactions into hierarchical categories by combining text analysis (using DistilBERT) with structured data (like transaction amounts and category IDs). It incrementally learns new categories, evaluates accuracy using metrics and visualizations, and neatly organizes training progress with logs and checkpoints.
 
 ------------------------------------------------
 Preprocessing Steps:
