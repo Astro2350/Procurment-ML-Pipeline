@@ -9,7 +9,7 @@ Preprocessing Steps:
 
 1. Load Raw Data:
 
-      Take your original data (usually from a CSV file) and load it into memory.
+      Take the original AP data and load it into memory.
 
 2. Clean Text Data:
 
@@ -35,31 +35,31 @@ Training Steps:
 
       Load libraries needed for training (PyTorch, transformers, scikit-learn, etc.).
 
-      Set random seeds for reproducibility (so your results are consistent each run).
+      Set random seeds for reproducibility (so the results are consistent each run).
 
 2. Data Loading:
 
-      Load your preprocessed data (processed_train_data.csv) into memory.
+      Load the preprocessed data into memory.
 
 3. Incremental Learning Setup:
 
-      Load or create a "master label encoder" that tracks all categories your model has seen so far.
+      Load or create a "master label encoder" that tracks all categories the model has seen so far.
 
-      Dynamically adjust the final layer of your neural network if new categories appear.
+      Dynamically adjust the final layer of the neural network if new categories appear.
 
 4. Prepare Data for the Model:
 
       Initialize a tokenizer (DistilBERT tokenizer) to convert text into numeric tokens.
 
-      Split your data into Training (80%) and Validation (20%) sets.
+      Split the data into Training (80%) and Validation (20%) sets.
 
 5. Create PyTorch Dataset:
 
-      Organize your data into batches using a PyTorch Dataset and DataLoader so the model can efficiently learn from batches of data.
+      Organize the data into batches using a PyTorch Dataset and DataLoader so the model can efficiently learn from batches of data.
 
 6. Define Neural Network (DistilHier Model):
 
-      Build your neural network by combining:
+      Build the neural network by combining:
 
       DistilBERT (turns text into useful numeric patterns).
 
