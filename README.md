@@ -7,55 +7,124 @@
 Preprocessing Steps:
 ------------------------------------------------
 
-Data Loading and Cleaning:
-Load the raw CSV files (one for the category hierarchy and one for training data - consists of the usual ap_row and vendors' primary category).
-Standardize column names to a consistent format.
+1. Load Raw Data:
 
-Data Merging and Feature Engineering:
-Merge the training data with the categories data using a common key (category id).
-Combine text fields (like name, description, and memo) into a single text feature.
-Apply text cleaning—converting text to lowercase and removing unwanted characters. (Previously, stopwords removal and lemmatization were applied, but those are emitted in this setup - HCA has fairly clean data.)
+  Take your original data (usually from a CSV file) and load it into memory.
 
-Target Variable Processing:
-Encode the target labels (matched categories) into numerical format.
-Filter out classes that have only one sample to avoid issues during training.
-Re‑encode the filtered labels so they form a continuous range.
+2. Clean Text Data:
 
-Saving Processed Data:
-Save the processed dataset and the fitted label encoder to the working directory so that the training script can use them without re‑processing.
+  Remove or correct typos, extra spaces, special characters, or formatting problems.
+
+  Combine multiple text columns (e.g., description, memo) into a single column (combined_text) for easier processing.
+
+3. Encode Categories:
+
+  Transform categorical labels (like "hospital_id", "primary_category_id", or hierarchical categories) into numbers using an encoder.
+
+  Save these numeric mappings (encoders) for later reuse.
+
+4. Handle Numeric Data (like transaction amount):
+
+  Find and adjust extreme numbers (outliers) using methods like clipping (e.g., if a value is extremely high, set it to a reasonable maximum).
 
 ------------------------------------------------
 Training Steps:
 ------------------------------------------------
 
-Loading Processed Data:
-Read the processed data and label encoder from the working directory.
+1. Setup and Configuration:
 
-Data Splitting and Dataset Creation:
-Split the processed data into training and validation sets.
-Create a custom dataset class that tokenizes the combined text (using a pre-trained tokenizer) and prepares the additional features (like categorical and hierarchical features, and a numerical amount).
+  Load libraries needed for training (PyTorch, transformers, scikit-learn, etc.).
 
-Model Setup:
-Load a pre-trained transformer model (such as DistilBERT) along with its tokenizer.
-Build a deep learning model that combines:
-The transformer’s output (for text features).
-Additional embeddings for other categorical features.
-Fully connected layers that integrate all features and produce predictions for the target classes.
+  Set random seeds for reproducibility (so your results are consistent each run).
 
-Training Configuration:
-Configure an optimizer (like AdamW), compute class weights to handle imbalanced data, and set up a learning rate scheduler.
-Optionally, set up mixed precision training if a GPU is available (....it definitley will be with AWS Sagemaker but not this run through).
+2. Data Loading:
 
-Training Loop:
-Iterate over the training data in batches, feed the data through the model, calculate loss (using cross-entropy), and update model weights.
-Monitor performance on the validation set and implement early stopping if necessary.
-Save model checkpoints and logs for tracking progress.
+  Load your preprocessed data (processed_train_data.csv) into memory.
 
-Saving Final Artifacts:
-After training, save the best model and the category mapping.
+3. Incremental Learning Setup:
+
+  Load or create a "master label encoder" that tracks all categories your model has seen so far.
+
+  Dynamically adjust the final layer of your neural network if new categories appear.
+
+4. Prepare Data for the Model:
+
+  Initialize a tokenizer (DistilBERT tokenizer) to convert text into numeric tokens.
+
+  Split your data into Training (80%) and Validation (20%) sets.
+
+5. Create PyTorch Dataset:
+
+  Organize your data into batches using a PyTorch Dataset and DataLoader so the model can efficiently learn from batches of data.
+
+6. Define Neural Network (DistilHier Model):
+
+  Build your neural network by combining:
+
+  DistilBERT (turns text into useful numeric patterns).
+
+  Embedding layers (learn numeric representations of categorical features).
+
+  Fully connected layers (learn patterns combining text, categorical, hierarchical, and numeric features like transaction amounts).
+
+  ReLU activation (helps model learn faster).
+
+  Batch Normalization and Dropout (help prevent overfitting).
+
+7. Set Optimization & Training Strategies:
+
+  Define loss function (CrossEntropy with class weights) to tell the model how to improve predictions.
+
+  Use AdamW Optimizer to quickly find optimal model parameters.
+
+  Use ReduceLROnPlateau (learning rate scheduler) to automatically adjust learning speed.
+
+8. Training Loop:
+
+  For multiple epochs (passes through the entire dataset):
+
+  Model sees training data, makes predictions, measures errors, and adjusts its parameters to improve.
+
+  After each epoch, the model evaluates itself on unseen validation data to ensure it's generalizing well.
+
+9. Early Stopping:
+
+  Monitor model performance. Stop early if validation performance stops improving to save time and prevent overfitting.
+
+10. Save Best Model & Checkpoints:
+
+  Save the model whenever it reaches new best performance.
+
+  Store checkpoints (saved models) to resume training later or to deploy for predictions.
+
+11. Visualization & Logging:
+
+  Generate confusion matrices (visual charts showing model accuracy).
+
+  Log metrics (accuracy, loss, precision, recall, F1-score) to files and TensorBoard for easy monitoring.
 
 ------------------------------------------------
-### A short story :)
-------------------------------------------------
 
-This code is designed to train a deep learning model that learns to match transaction details with the appropriate matched category by integrating both unstructured text and structured categorical data. The model takes a combination of features as input: first, it uses a DistilBERT tokenizer and model to convert the transaction’s "combined_text" into a high-dimensional embedding that captures semantic meaning. In addition, it incorporates several categorical features such as the hospital system ID, primary category ID, and department name (each of which is converted into fixed-length embeddings) along with a hierarchy of encoded category levels (category0 through category5). For instance, if a vendor’s primary category is “med./surg - other” (say, encoded as 1302) but the transaction detail text mentions “repair,” the model can learn from the hierarchical features that “biomed repair - other” (encoded as 120) is a subcategory within the broader “medical supplies” taxonomy. The continuous "amount" feature is also appended to capture quantitative differences that might be relevant to certain categories. All these features are concatenated into a single vector, which then flows through fully connected layers (with dropout, ReLU activations, and batch normalization) to produce the final prediction over 1125 possible matched categories (although this will change dynamically as we branch further away from the test system). During training, the model is optimized using cross-entropy loss, comparing the predicted class with the target label, while the checkpoint-loading mechanism ensures that previously learned weights are reused where possible—except for layers like the final classification head and department name embedding which have changed dimensions. This integrated approach allows the model to understand both the rich context provided by the text and the structured category hierarchy, resulting in more accurate predictions of which matched category corresponds to each transaction detail.
+Methods/Techniques:
+
+Batch Normalization
+
+Dropout
+
+Early Stopping
+
+ReLU Activation
+
+Optimization Algorithms:
+
+AdamW Optimizer
+
+Learning Rate Scheduler (ReduceLROnPlateau)
+
+Implementation Techniques:
+
+Efficient Data Loading (DataLoader)
+
+Architecture & Incremental Learning Strategies:
+
+Dynamic Model Adjustment
