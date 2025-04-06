@@ -1,5 +1,5 @@
 # Overall Pipeline in SageMaker
-Orchestration via the Training Pipeline Notebook
+### Orchestration via the Training Pipeline Notebook
 The Jupyter Notebook (TrainingPipeline.ipynb) serves as the high-level orchestrator. It likely uses the SageMaker SDK to:
 
 Launch a Processing Job: Runs the preprocessing script (preprocess_train_file_sagemaker.py) to clean and transform raw data.
@@ -8,14 +8,14 @@ Launch a Training Job: Invokes the training script (train_sagemaker.py) that tra
 
 Manage Data and Artifacts: It specifies S3 buckets/paths so that processed data and model artifacts (like checkpoints, logs, and reports) are automatically stored in S3.
 
-# SageMaker Role
-## SageMaker manages the compute environments:
+###  SageMaker Role
+SageMaker manages the compute environments:
 
 Processing Job Environment: Maps S3 input data to /opt/ml/processing/input and later saves outputs from /opt/ml/processing/output back to S3.
 
 Training Job Environment: Sets up the container (possibly with GPU support), downloads processed data from S3, runs the training script, and then uploads the experiment’s outputs (trained model, logs, reports) to S3.
 
-Preprocessing Step: preprocess_train_file_sagemaker.py
+# Preprocessing Step: preprocess_train_file_sagemaker.py
 This script is executed as a SageMaker processing job. Its detailed operations are:
 
 ## Data Loading & Setup:
@@ -48,9 +48,8 @@ Processed Data: The final preprocessed DataFrame is saved as processed_train_dat
 
 Encoders: The fitted label encoders are pickled (saved as .pkl files) to ensure that the same transformations can be applied during inference or by the training job.
 
-This entire preprocessing workflow is detailed in the script (see ).
 
-Training Step: train_sagemaker.py
+# Training Step: train_sagemaker.py
 This script is run as a SageMaker training job. Its key technical operations include:
 
 ## Environment and Data Loading:
@@ -77,7 +76,7 @@ Hierarchical Features: Encoded values for several hierarchical categories.
 
 Target Label: The encoded matched_category_id.
 
-## Model Architecture:
+### Model Architecture:
 
 BERT Backbone: The model uses DistilBERT to extract contextual text embeddings (using the [CLS] token output).
 
@@ -99,13 +98,13 @@ Data Splitting: The preprocessed data is split into training and validation sets
 
 Oversampling: To balance classes, the training data is oversampled using WeightedRandomSampler.
 
-## Loss and Optimizer:
+### Loss and Optimizer:
 
 Loss Function: Cross-entropy loss is used, with class weights computed to address imbalance.
 
 Optimizer: AdamW is used with a learning rate of 1e-5.
 
-## Epoch Loop:
+### Epoch Loop:
 
 In each epoch, the training loop iterates over batches, computes gradients, applies gradient clipping, and updates weights.
 
