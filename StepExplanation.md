@@ -1,143 +1,126 @@
-## Step 1: Imports & Setup
-What this step does:
-This step brings in the tools (libraries) that the script will use to perform tasks like data processing, math operations, and machine learning.
+# Overall Pipeline in SageMaker
+Orchestration via the Training Pipeline Notebook
+The Jupyter Notebook (TrainingPipeline.ipynb) serves as the high-level orchestrator. It likely uses the SageMaker SDK to:
 
-Key Libraries & What They Do:
-Pandas (pandas):
+Launch a Processing Job: Runs the preprocessing script (preprocess_train_file_sagemaker.py) to clean and transform raw data.
 
-Loads, reads, and manipulates structured data, similar to Excel but in Python.
+Launch a Training Job: Invokes the training script (train_sagemaker.py) that trains the deep learning model.
 
-NumPy (numpy):
+Manage Data and Artifacts: It specifies S3 buckets/paths so that processed data and model artifacts (like checkpoints, logs, and reports) are automatically stored in S3.
 
-Performs mathematical calculations quickly, especially on large sets of numbers.
+# SageMaker Role
+## SageMaker manages the compute environments:
 
-PyTorch (torch):
+Processing Job Environment: Maps S3 input data to /opt/ml/processing/input and later saves outputs from /opt/ml/processing/output back to S3.
 
-A powerful library used to build, train, and run deep learning models.
+Training Job Environment: Sets up the container (possibly with GPU support), downloads processed data from S3, runs the training script, and then uploads the experiment’s outputs (trained model, logs, reports) to S3.
 
-Transformers (from Hugging Face):
+Preprocessing Step: preprocess_train_file_sagemaker.py
+This script is executed as a SageMaker processing job. Its detailed operations are:
 
-Offers advanced pretrained AI models (like DistilBERT) to process and understand text data.
+## Data Loading & Setup:
 
-Scikit-learn (sklearn):
+Input Paths: It reads CSV files (e.g., TRAIN.csv and list_of_categories.csv) from /opt/ml/processing/input. These paths are provided by SageMaker based on the S3 input configuration.
 
-Provides tools for splitting data, encoding labels, calculating metrics, and handling class imbalance.
+Library Initialization: It downloads NLTK resources (stopwords and WordNet lemmatizer) to ensure text processing dependencies are met.
 
-TensorBoard (torch.utils.tensorboard):
+## Data Cleaning and Merging:
 
-A visualization toolkit from Google that tracks and displays graphs of how well the model learns during training.
+Column Standardization: Column names in both dataframes are standardized (stripped, lowercased, underscores replacing spaces).
 
-Matplotlib & Seaborn (matplotlib, seaborn):
+Merging: The training data is merged with category information (joining on identifiers) to enrich the dataset.
 
-Used to create visual charts (like confusion matrices) that help see model performance visually.
+## Text Preprocessing:
 
-## Step 2: Directory & Experiment Management
-What this step does:
-Creates folders to neatly organize your training results, models, and logs each time you run the script. This way, you won't overwrite previous results and can easily compare performance over multiple runs.
+Combined Text Field: Several text columns (name, gl_description, memo, department_name) are concatenated into a single combined_text field.
 
-## Step 3: TensorBoard Initialization
-What TensorBoard is:
-TensorBoard is a dashboard-like tool that shows graphs, charts, and statistics about your model’s training performance (accuracy, loss, etc.), updated live as your model trains.
+Preprocessing Function: The preprocess_text function converts text to lowercase, removes non-alphabet characters via regex, removes stopwords, and applies lemmatization. This function is applied to the combined_text column for uniform text processing.
 
-## Step 4: Incremental Learning Check
-Incremental Learning:
-Incremental learning means your model learns new things (like new categories) without forgetting previous ones. The script looks at past experiments to find previous knowledge (saved models) to build upon.
+## Label Encoding & Filtering:
 
-## Step 5: Data Loading & Master Label Encoder
-What Label Encoding Means:
-Label Encoding converts text labels (categories like "Food", "Office Supplies", etc.) into numeric codes (0, 1, 2, etc.) because the model needs numbers to make predictions.
+Encoding: Categorical columns (like matched_category_id, primary_category_id, hospital_system_id, and others) are encoded using scikit-learn’s LabelEncoder.
 
-The master label encoder ensures the numeric codes for categories remain consistent across different training sessions.
+Rare Class Removal: Any classes that occur only once are filtered out, and the target labels are re-encoded to ensure a consistent label space.
 
-## Step 6: Updating Master Label Encoder
-Why Update the Encoder:
-When new data arrives, it might have new categories that didn’t exist before. The encoder updates itself to recognize and handle these new categories.
+## Saving Outputs:
 
-## Step 7: Data Preprocessing & Outlier Handling
-What this means:
-Preprocessing cleans the data before training. One important part of cleaning is managing extreme or unusual numbers (outliers). For example, if most transactions are around $100 but suddenly one says $1,000,000, this step either trims it down or adjusts it to avoid confusing the model.
+Processed Data: The final preprocessed DataFrame is saved as processed_train_data.csv in /opt/ml/processing/output.
 
-## Step 8: Tokenizer Initialization
-What Tokenizer & DistilBERT mean:
-A tokenizer splits text into smaller chunks called tokens, which makes it easier for AI models to analyze.
+Encoders: The fitted label encoders are pickled (saved as .pkl files) to ensure that the same transformations can be applied during inference or by the training job.
 
-DistilBERT is a pretrained AI model (a Transformer) that understands language. It has already read and learned from massive amounts of text online, making it good at converting text into meaningful numbers (embeddings) the model can use.
+This entire preprocessing workflow is detailed in the script (see ).
 
-## Step 9: Custom PyTorch Dataset
-Why Custom Dataset:
-The script uses a custom-defined dataset that neatly organizes the text data, categorical data (like hospital IDs), hierarchical categories, and numerical data (like transaction amounts). It prepares all these data points so the model can process them together smoothly.
+Training Step: train_sagemaker.py
+This script is run as a SageMaker training job. Its key technical operations include:
 
-## Step 10: Neural Network Model Definition
-Neural Network Basics:
-A neural network is like a complex web of math operations inspired by human brains, able to learn patterns from data.
+## Environment and Data Loading:
 
-The Layers Explained:
-DistilBERT Layer:
+S3 Integration: The script defines a base S3 path (e.g., s3://lxeml/CH_Test/) from which it loads the preprocessed data (processed_train_data.csv) and the master label encoder. SageMaker’s training job environment ensures that the required data is accessible via these S3 URIs.
 
-Converts your input text (like descriptions) into numeric representations called embeddings.
+Device Setup: It detects the availability of GPU (via torch.cuda.is_available()) to set the device appropriately.
 
-Embedding Layers (for categorical and hierarchical features):
+## Preliminary Data Handling:
 
-Convert categories (like "hospital_id" or "primary_category_id") into numeric embeddings that the model can interpret.
+Outlier Treatment: There is a function to handle outliers in numeric columns (specifically amount), applying clipping based on the interquartile range (IQR).
 
-Fully Connected Layers (fc1, fc2, fc3):
+Tokenization: A DistilBERT tokenizer is initialized to convert the combined text into token IDs that the model can process.
 
-These layers combine all embeddings and numerical data into predictions. They work by finding mathematical patterns that map inputs to categories.
+## Dataset and Model Preparation:
 
-Batch Normalization (BatchNorm) & Dropout:
+Custom Dataset: A PyTorch Dataset class (TransactionDataset) is defined. It tokenizes each row’s combined_text and packs in additional features:
 
-Batch Normalization keeps numbers stable to help the model learn faster.
+Text Features: Tokenized input IDs and attention masks.
 
-Dropout temporarily removes random connections between neurons during training to avoid overfitting (memorizing data instead of learning general patterns).
+Categorical Features: Encoded categorical features such as hospital_system_id_encoded and primary_category_id_encoded.
 
-## Step 11: Adjusting Model for New Classes
-Dynamic Adjustments:
-If new categories appear, the final layer of the model adjusts to accommodate these categories. It preserves existing learned weights to prevent loss of previous knowledge.
+Hierarchical Features: Encoded values for several hierarchical categories.
 
-## Step 12: Class Weights Computation
-What Class Weights Are:
-In datasets, some categories might appear very frequently while others rarely appear. Class weights balance this, giving more importance to rare categories so the model learns them equally well.
+Target Label: The encoded matched_category_id.
 
-## Step 13: Train/Validation Data Split & Loaders
-What this does:
-The data is divided into two sets:
+## Model Architecture:
 
-Training set: the model learns patterns from this.
+BERT Backbone: The model uses DistilBERT to extract contextual text embeddings (using the [CLS] token output).
 
-Validation set: the model tests its learned patterns on unseen data to check generalization.
+Embedding Layers: Separate embedding layers are created for the additional categorical and hierarchical features.
 
-Data loaders feed data batches to the model efficiently during training.
+Fully Connected Layers: These embeddings, along with a raw numeric feature (amount), are concatenated with the BERT output and fed through several linear layers with dropout and batch normalization.
 
-## Step 14: Hyperparameters & Optimization
-Hyperparameters Explained:
-Learning rate: How quickly the model adjusts its understanding of patterns.
+Output: The final layer produces logits corresponding to the number of classes.
 
-Optimizer (AdamW): Helps the model adjust efficiently.
+These details of model definition and data handling are described in .
 
-Loss function (CrossEntropy): Measures how wrong the model predictions are to help improve accuracy.
+Training Loop and Optimization
 
-## Step 15: Loading Checkpoints
-Checkpoints:
-If training was paused or done previously, checkpoints store the model’s learned state so it can resume training later without starting over.
+## Training Setup:
 
-## Step 16: Training & Evaluation Functions
-Training Function:
-This function repeatedly feeds data batches to the model, calculates the error (loss), and adjusts the model weights to minimize this error.
+Random Seed: For reproducibility, a fixed seed is set.
 
-Evaluation Function:
-Checks how accurately the trained model predicts on unseen data.
+Data Splitting: The preprocessed data is split into training and validation sets.
 
-## Step 17: Confusion Matrix Visualization
-Confusion Matrix:
-A visual chart showing clearly what categories the model predicts correctly and where it gets confused, helping you understand performance at a glance.
+Oversampling: To balance classes, the training data is oversampled using WeightedRandomSampler.
 
-## Step 18: Main Training Loop
-What this loop does:
-Repeats the training and evaluation process multiple times (epochs), continuously improving the model.
+## Loss and Optimizer:
 
-Saves the best-performing version of the model based on validation performance (measured by F1-score).
+Loss Function: Cross-entropy loss is used, with class weights computed to address imbalance.
 
-Stops early if the model stops improving (early stopping).
+Optimizer: AdamW is used with a learning rate of 1e-5.
 
-## Step 19: Post-Training Logging
-Completes training by neatly saving logs, metrics, model checkpoints, and all artifacts generated during training.
+## Epoch Loop:
+
+In each epoch, the training loop iterates over batches, computes gradients, applies gradient clipping, and updates weights.
+
+Validation: After each epoch, validation metrics (loss, accuracy, F1, top-N accuracy) are computed.
+
+Logging: Metrics are logged to TensorBoard and a CSV log file is maintained.
+
+Early Stopping & Checkpointing: The best model (based on F1 score) is saved as a checkpoint (best_model.pth) in the experiment directory.
+
+Visualization: A histogram of prediction confidences is saved to monitor model calibration.
+
+## Saving Artifacts:
+
+Model Artifacts: The best model checkpoint and optimizer state are saved in a timestamped experiment directory.
+
+S3 Upload: When the training job concludes, SageMaker automatically uploads the experiment directory (including model checkpoints, logs, and reports) to the specified S3 bucket as part of the job’s output.
+
+The training script’s detailed mechanics are fully captured in .
