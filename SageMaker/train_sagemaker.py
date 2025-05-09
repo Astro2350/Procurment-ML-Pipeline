@@ -16,9 +16,9 @@ from sklearn.metrics import precision_recall_fscore_support, classification_repo
 import matplotlib.pyplot as plt
 from transformers import DistilBertTokenizer, DistilBertModel
 
-# -----------------------------
+
 # Configuration
-# -----------------------------
+
 # 42 because its the answer to everything in the universe lmao
 RANDOM_SEED = 42
 def set_seed(seed=RANDOM_SEED):
@@ -29,16 +29,16 @@ def set_seed(seed=RANDOM_SEED):
         torch.cuda.manual_seed_all(seed)
 set_seed(RANDOM_SEED)
 
-# -----------------------------
+
 # Base Paths (Using S3 URI)
-# -----------------------------
+
 base_path = "s3://lxeml/CH_Test/"
 results_dir = os.path.join(base_path, "results")
 master_encoder_path = os.path.join(base_path, "master_label_encoder.pkl")
 
-# -----------------------------
+
 # Create New Experiment Folder
-# -----------------------------
+
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 this_experiment_dir = os.path.join(results_dir, f"experiment_{timestamp}")
 os.makedirs(this_experiment_dir, exist_ok=True)
@@ -47,32 +47,32 @@ print("TRAINING SCRIPT - Starting Fresh Training")
 print(f"New experiment directory: {this_experiment_dir}")
 print("="*50)
 
-# -----------------------------
+
 # Initialize TensorBoard SummaryWriter
-# -----------------------------
+
 tb_log_dir = os.path.join(this_experiment_dir, "tensorboard_logs")
 writer = SummaryWriter(log_dir=tb_log_dir)
 print(f"TensorBoard logs will be saved to: {tb_log_dir}")
 
-# -----------------------------
+
 # Load Processed Training Data from S3
-# -----------------------------
+
 processed_data_path = os.path.join(base_path, 'processed_train_data.csv')
 df = pd.read_csv(processed_data_path)
 print(f"Loaded training data from '{processed_data_path}' | Rows: {len(df)}")
 
-# -----------------------------
+
 # Load Master Label Encoder
-# -----------------------------
+
 with open(master_encoder_path, 'rb') as f:
     master_label_encoder = pickle.load(f)
 print(f"Loaded master label encoder from: {master_encoder_path}")
 num_classes = len(master_label_encoder.classes_)
 print(f"Using {num_classes} classes.")
 
-# -----------------------------
+
 # Outlier Handling for 'amount'
-# -----------------------------
+
 def handle_outliers(df, column, method='clip'):
     if method == 'clip':
         q1, q3 = df[column].quantile(0.25), df[column].quantile(0.75)
@@ -88,15 +88,15 @@ if 'amount' in df.columns:
     print("Handling outliers in 'amount' column using clipping.")
     df['amount'] = handle_outliers(df, 'amount', method='clip')
 
-# -----------------------------
+
 # Initialize Tokenizer
-# -----------------------------
+
 tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
 print("Initialized DistilBERT tokenizer.")
 
-# -----------------------------
+
 # Custom Dataset Definition
-# -----------------------------
+
 class TransactionDataset(Dataset):
     def __init__(self, dataframe, tokenizer, max_length=128):
         self.data = dataframe.reset_index(drop=True)
@@ -135,9 +135,9 @@ class TransactionDataset(Dataset):
             'target': target
         }
 
-# -----------------------------
+
 # Model Architecture Definition
-# -----------------------------
+
 class HierarchicalCategoryModel(nn.Module):
     def __init__(self, bert_model, cat_vocab_sizes, hier_vocab_sizes,
                  num_classes, dropout_rate=0.1, embedding_dim=32,
@@ -196,9 +196,9 @@ model = HierarchicalCategoryModel(
 ).to(device)
 print(f"Created HierarchicalCategoryModel with {num_classes} output classes.")
 
-# -----------------------------
+
 # Compute Global Class Weights
-# -----------------------------
+
 present_classes = np.unique(df['matched_category_id_encoded'].values)
 weights_present = compute_class_weight('balanced', classes=present_classes, y=df['matched_category_id_encoded'].values)
 global_cw = np.ones(num_classes)
@@ -207,9 +207,9 @@ for i, cls in enumerate(present_classes):
 global_cw_tensor = torch.tensor(global_cw, dtype=torch.float)
 print("Computed global class weights.")
 
-# -----------------------------
+
 # Train/Validation Split and Oversampling
-# -----------------------------
+
 train_df, val_df = train_test_split(df, test_size=0.2, random_state=42)
 print(f"Train set size: {len(train_df)} | Val set size: {len(val_df)}")
 
@@ -225,9 +225,9 @@ sampler = torch.utils.data.WeightedRandomSampler(sample_weights, len(sample_weig
 train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=sampler, drop_last=True)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-# -----------------------------
+
 # Hyperparameters and Optimizer Setup
-# -----------------------------
+
 learning_rate = 1e-5
 num_epochs = 3
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=0.01)
@@ -236,9 +236,9 @@ scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', fa
 
 print("No previous checkpoint loaded. Training from scratch.")
 
-# -----------------------------
+
 # Additional Metric Function: Top-N Accuracy
-# -----------------------------
+
 def top_n_accuracy(y_true, y_probs, n=3):
     top_n_preds = np.argsort(y_probs, axis=1)[:, -n:]
     correct = 0
@@ -247,9 +247,9 @@ def top_n_accuracy(y_true, y_probs, n=3):
             correct += 1
     return correct / len(y_true)
 
-# -----------------------------
+
 # Training and Evaluation Functions
-# -----------------------------
+
 def train_epoch(model, loader, optimizer, criterion, device, epoch_idx, total_epochs):
     model.train()
     total_loss = 0
@@ -302,9 +302,9 @@ def evaluate(model, loader, criterion, device, epoch_idx, total_epochs):
     prec, rec, f1, _ = precision_recall_fscore_support(all_targets, all_preds, average='weighted')
     return avg_loss, acc, f1, np.array(all_targets), np.array(all_preds), np.array(all_probs)
 
-# -----------------------------
+
 # Training Loop
-# -----------------------------
+
 print("Starting training loop...")
 best_val_f1 = 0
 early_stopping_counter = 0
