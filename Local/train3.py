@@ -18,11 +18,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from transformers import DistilBertTokenizer, DistilBertModel
 
-# -----------------------------
 # Configuration
-# -----------------------------
+
 PLOT_CONFUSION_MATRIX = True
-RANDOM_SEED = 42
+RANDOM_SEED = 42 #this is life fr fr
 
 def set_seed(seed=RANDOM_SEED):
     random.seed(seed)
@@ -33,16 +32,16 @@ def set_seed(seed=RANDOM_SEED):
 
 set_seed(RANDOM_SEED)
 
-# -----------------------------
+
 # Base Paths
-# -----------------------------
-base_path = r"C:\Users\sambe\Desktop\ML Stuff\CT-Train"
+
+base_path = r""
 results_dir = os.path.join(base_path, "results")
 master_encoder_path = os.path.join(base_path, "master_label_encoder.pkl")  # persistent label encoder
 
-# -----------------------------
+
 # Create New Experiment Folder
-# -----------------------------
+
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 this_experiment_dir = os.path.join(results_dir, f"experiment_{timestamp}")
 os.makedirs(this_experiment_dir, exist_ok=True)
@@ -58,9 +57,9 @@ tb_log_dir = os.path.join(this_experiment_dir, "tensorboard_logs")
 writer = SummaryWriter(log_dir=tb_log_dir)
 print(f"TensorBoard logs will be saved to: {tb_log_dir}")
 
-# -----------------------------
+
 # Discover Previous Experiment (for resuming training)
-# -----------------------------
+
 def find_previous_experiment(base_dir, exclude_path):
     experiment_dirs = []
     for name in os.listdir(base_dir):
@@ -86,16 +85,15 @@ else:
     print("No previous experiment folder found. Training from scratch.")
     possible_checkpoint = None
 
-# -----------------------------
+
 # Load Processed Training Data
-# -----------------------------
+
 processed_data_path = os.path.join(base_path, 'processed_train_data.csv')
 df = pd.read_csv(processed_data_path)
 print(f"Loaded training data: {processed_data_path} | Rows: {len(df)}")
 
-# -----------------------------
 # Load or Initialize Master Label Encoder
-# -----------------------------
+
 if os.path.exists(master_encoder_path):
     with open(master_encoder_path, 'rb') as f:
         master_label_encoder = pickle.load(f)
@@ -107,9 +105,9 @@ else:
     master_label_encoder.fit(df['matched_category_id'])
     print("No master label encoder found. Created a new one from current data.")
 
-# -----------------------------
+
 # Update Master Label Encoder with New Data
-# -----------------------------
+
 # Get the unique labels in the new training data (from the original target column, not the encoded one)
 new_labels = np.unique(df['matched_category_id'])
 # Get the union of old and new labels
@@ -130,9 +128,9 @@ df['matched_category_id_encoded'] = master_label_encoder.transform(df['matched_c
 num_classes = len(master_label_encoder.classes_)
 print(f"Using fixed number of classes: {num_classes}")
 
-# -----------------------------
+
 # Outlier Handling for 'amount'
-# -----------------------------
+
 def handle_outliers(df, column, method='clip'):
     if method == 'clip':
         q1, q3 = df[column].quantile(0.25), df[column].quantile(0.75)
@@ -148,15 +146,15 @@ if 'amount' in df.columns:
     print("Handling outliers in 'amount' column using 'clip' method.")
     df['amount'] = handle_outliers(df, 'amount', method='clip')
 
-# -----------------------------
+
 # Initialize Tokenizer
-# -----------------------------
+
 tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
 print("Initialized DistilBERT tokenizer.")
 
-# -----------------------------
+
 # Custom Dataset Definition
-# -----------------------------
+
 class TransactionDataset(Dataset):
     def __init__(self, dataframe, tokenizer, max_length=128):
         self.data = dataframe.reset_index(drop=True)
@@ -195,9 +193,9 @@ class TransactionDataset(Dataset):
             'target': target
         }
 
-# -----------------------------
+
 # Model Architecture Definition
-# -----------------------------
+
 class HierarchicalCategoryModel(nn.Module):
     def __init__(self, bert_model, cat_vocab_sizes, hier_vocab_sizes,
                  num_classes, dropout_rate=0.1, embedding_dim=32,
@@ -241,9 +239,9 @@ class HierarchicalCategoryModel(nn.Module):
 
 print("Building model...")
 
-# -----------------------------
+
 # Construct Model with Fixed Output Dimension
-# -----------------------------
+
 cat_vocab_sizes = [10000, 10000]
 hier_vocab_sizes = [10000]*6
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -259,9 +257,9 @@ model = HierarchicalCategoryModel(
 ).to(device)
 print(f"Created HierarchicalCategoryModel with {num_classes} output classes.")
 
-# -----------------------------
-# Function to Expand (or Shrink) Final Layer if Needed
-# -----------------------------
+
+# Function to Expand or Shrink Final Layer if Need
+
 def adjust_final_layer(model, new_num_classes):
     old_fc3 = model.fc3
     old_num_classes = old_fc3.out_features
@@ -283,9 +281,9 @@ if num_classes != current_num_classes:
 else:
     print("Final layer already has correct number of classes.")
 
-# -----------------------------
+
 # Compute Global Class Weights (using full label set)
-# -----------------------------
+
 global_cw = compute_class_weight(
     'balanced',
     classes=np.arange(num_classes),
@@ -294,9 +292,9 @@ global_cw = compute_class_weight(
 global_cw_tensor = torch.tensor(global_cw, dtype=torch.float)
 print("Computed global class weights for CrossEntropyLoss.")
 
-# -----------------------------
+
 # Train/Validation Split
-# -----------------------------
+
 train_df, val_df = train_test_split(df, test_size=0.2, random_state=42)
 print(f"Train set size: {len(train_df)} | Val set size: {len(val_df)}")
 train_dataset = TransactionDataset(train_df, tokenizer)
@@ -305,18 +303,17 @@ batch_size = 16
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-# -----------------------------
 # Hyperparameters and Optimizer Setup
-# -----------------------------
+
 learning_rate = 1e-5
 num_epochs = 3
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=0.01)
 criterion = nn.CrossEntropyLoss(weight=global_cw_tensor.to(device))
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=1)
 
-# -----------------------------
+
 # Possibly Load Previous Best Model from a Known Checkpoint
-# -----------------------------
+
 if possible_checkpoint:
     print(f"Attempting to load checkpoint from previous run:\n {possible_checkpoint}")
     checkpoint = torch.load(possible_checkpoint, map_location=device)
@@ -326,9 +323,9 @@ if possible_checkpoint:
 else:
     print("No previous checkpoint found. Training from scratch.")
 
-# -----------------------------
+
 # Training and Evaluation Functions
-# -----------------------------
+
 def train_epoch(model, loader, optimizer, criterion, device, epoch_idx, total_epochs):
     model.train()
     total_loss = 0
@@ -390,9 +387,9 @@ def plot_confusion_matrix(cm, classes, filepath):
     plt.savefig(filepath)
     plt.close()
 
-# -----------------------------
+
 # Training Loop
-# -----------------------------
+
 print("Starting training loop...")
 best_val_f1 = 0
 early_stopping_counter = 0
