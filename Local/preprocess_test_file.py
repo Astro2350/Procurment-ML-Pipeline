@@ -20,7 +20,7 @@ def preprocess_text(text):
     return text
 
 # Define base path
-base_path = r"C:\Users\sambe\Desktop\ML Stuff\CT-Train"
+base_path = r""
 
 # Load raw test data and list_of_categories (if needed for merging)
 test_data_path = os.path.join(base_path, 'TEST.csv')
