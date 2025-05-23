@@ -7,10 +7,10 @@ import pickle
 from transformers import DistilBertTokenizer, DistilBertModel
 from tqdm import tqdm
 
-# -----------------------------
+
 # Base Paths and Experiment Discovery
-# -----------------------------
-base_path = r"C:\Users\sambe\Desktop\ML Stuff\CT-Train"
+
+base_path = r""
 results_dir = os.path.join(base_path, "results")
 # Discover newest experiment folder
 experiment_dirs = [os.path.join(results_dir, d) for d in os.listdir(results_dir)
@@ -26,23 +26,23 @@ print(f"Results dir: {results_dir}")
 print(f"Newest experiment directory: {latest_experiment_dir}")
 print(f"Checkpoint path: {checkpoint_path}")
 
-# -----------------------------
+
 # Device Setup
-# -----------------------------
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-# -----------------------------
+
 # Load Processed Test Data
-# -----------------------------
+
 processed_test_data_path = os.path.join(base_path, "processed_test_data.csv")
 print(f"Reading processed test data from: {processed_test_data_path}")
 df = pd.read_csv(processed_test_data_path)
 print(f"Loaded {len(df)} rows from '{processed_test_data_path}'.")
 
-# -----------------------------
+
 # Load Master Label Encoder
-# -----------------------------
+
 master_encoder_path = os.path.join(base_path, "master_label_encoder.pkl")
 print(f"Loading master label encoder from: {master_encoder_path}")
 with open(master_encoder_path, "rb") as f:
@@ -50,16 +50,15 @@ with open(master_encoder_path, "rb") as f:
 num_classes = len(master_label_encoder.classes_)
 print(f"Number of classes in master label encoder: {num_classes}")
 
-# -----------------------------
+
 # Initialize Tokenizer and DistilBERT
-# -----------------------------
+
 print("Initializing DistilBERT tokenizer and model...")
 tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
 bert_model = DistilBertModel.from_pretrained("distilbert-base-uncased")
 
-# -----------------------------
 # Model Definition
-# -----------------------------
+
 class HierarchicalCategoryModel(nn.Module):
     def __init__(self, bert_model, cat_vocab_sizes, hier_vocab_sizes,
                  num_classes, dropout_rate=0.1, embedding_dim=32):
@@ -98,9 +97,8 @@ class HierarchicalCategoryModel(nn.Module):
 
 print("Defining HierarchicalCategoryModel for prediction...")
 
-# -----------------------------
 # Construct Model
-# -----------------------------
+
 cat_vocab_sizes = [10000, 10000]
 hier_vocab_sizes = [10000]*6
 model = HierarchicalCategoryModel(
@@ -116,9 +114,9 @@ print(f"  cat_vocab_sizes = {cat_vocab_sizes}")
 print(f"  hier_vocab_sizes = {hier_vocab_sizes}")
 print(f"  num_classes      = {num_classes}")
 
-# -----------------------------
+
 # Load Checkpoint (Strict Load)
-# -----------------------------
+
 print(f"Loading checkpoint from: {checkpoint_path}")
 checkpoint = torch.load(checkpoint_path, map_location=device)
 model.load_state_dict(checkpoint["model_state_dict"], strict=True)
@@ -126,9 +124,9 @@ print("Checkpoint loaded successfully with strict=True.")
 model.eval()
 print("Model set to eval mode.")
 
-# -----------------------------
+
 # Batched Inference
-# -----------------------------
+
 batch_size = 32
 predictions = []
 print(f"Starting inference with batch_size={batch_size}...")
@@ -175,4 +173,4 @@ df["predicted_category"] = predictions
 output_path = os.path.join(latest_experiment_dir, "ap_predictions.csv")
 df.to_csv(output_path, index=False)
 print(f"Inference complete. Predictions saved to '{output_path}'.")
-print("========== PREDICT SCRIPT END ==========")
+print("end of prediction")
