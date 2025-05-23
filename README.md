@@ -1,3 +1,9 @@
+### High-Level Architecture
+![High-Level ML Pipeline](hlmlpl.PNG)
+
+### ML Training Pipeline
+![ML Training Pipeline](mltpl.PNG)
+
 ## Data Flow:
 
 Raw Data → Preprocessing: Raw CSV files are read from S3 (mounted as /opt/ml/processing/input) and transformed by the preprocessing script.
