@@ -26,7 +26,7 @@ A hybrid deep learning classifier that reads the text of each transaction **and*
 
 ### Training pipeline (`SageMaker/TrainingPipeline.ipynb`)
 1. **Processing job** (`preprocess_train_file_sagemaker.py`): reads raw CSVs from S3, cleans and merges them, encodes categorical fields, removes categories with a single example, and saves the processed data and encoders back to S3.
-2. **Training job** (`train_sagemaker.py`, GPU instance): trains the hybrid DistilBERT model, tracks loss, accuracy, weighted F1, and top-3 accuracy each epoch, and saves the best model (by F1) plus logs to S3.
+2. **Training job** (`train_sagemaker.py`, GPU instance): trains the hybrid DistilBERT model, tracks loss, accuracy, weighted F1, and top-3 and top-5 accuracy each epoch, and saves the best model (by F1) plus logs to S3.
 
 ### Prediction pipeline (`SageMaker/PredictionPipeline.ipynb`)
 1. **Processing job** (`preprocess_test_file_sagemaker.py`): applies the same cleaning and saved encoders to new data.
