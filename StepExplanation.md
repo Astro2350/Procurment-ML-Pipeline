@@ -1,6 +1,6 @@
 # Overall Pipeline in SageMaker
 ### Orchestration via the Training Pipeline Notebook
-The Jupyter Notebook (TrainingPipeline.ipynb) serves as the high-level orchestrator. It likely uses the SageMaker SDK to:
+The Jupyter Notebook (TrainingPipeline.ipynb) serves as the high-level orchestrator. It uses the SageMaker Python SDK to:
 
 Launch a Processing Job: Runs the preprocessing script (preprocess_train_file_sagemaker.py) to clean and transform raw data.
 
@@ -13,7 +13,7 @@ SageMaker manages the compute environments:
 
 Processing Job Environment: Maps S3 input data to /opt/ml/processing/input and later saves outputs from /opt/ml/processing/output back to S3.
 
-Training Job Environment: Sets up the container (possibly with GPU support), downloads processed data from S3, runs the training script, and then uploads the experiment’s outputs (trained model, logs, reports) to S3.
+Training Job Environment: Sets up the container (with GPU support when available), downloads processed data from S3, runs the training script, and then uploads the experiment’s outputs (trained model, logs, reports) to S3.
 
 # Preprocessing Step: preprocess_train_file_sagemaker.py
 This script is executed as a SageMaker processing job. Its detailed operations are:
@@ -54,7 +54,7 @@ This script is run as a SageMaker training job. Its key technical operations inc
 
 ## Environment and Data Loading:
 
-S3 Integration: The script defines a base S3 path (e.g., s3://lxeml/CH_Test/) from which it loads the preprocessed data (processed_train_data.csv) and the master label encoder. SageMaker’s training job environment ensures that the required data is accessible via these S3 URIs.
+S3 Integration: The script defines a base S3 path (e.g., s3://your-bucket/your-prefix/) from which it loads the preprocessed data (processed_train_data.csv) and the master label encoder. SageMaker’s training job environment ensures that the required data is accessible via these S3 URIs.
 
 Device Setup: It detects the availability of GPU (via torch.cuda.is_available()) to set the device appropriately.
 
@@ -86,9 +86,8 @@ Fully Connected Layers: These embeddings, along with a raw numeric feature (amou
 
 Output: The final layer produces logits corresponding to the number of classes.
 
-These details of model definition and data handling are described in .
 
-Training Loop and Optimization
+## Training Loop and Optimization
 
 ## Training Setup:
 
@@ -122,4 +121,3 @@ Model Artifacts: The best model checkpoint and optimizer state are saved in a ti
 
 S3 Upload: When the training job concludes, SageMaker automatically uploads the experiment directory (including model checkpoints, logs, and reports) to the specified S3 bucket as part of the job’s output.
 
-The training script’s detailed mechanics are fully captured in .
