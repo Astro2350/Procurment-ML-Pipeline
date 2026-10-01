@@ -23,7 +23,7 @@ def preprocess_text(text):
     return text
 
 # Define the base path for your project
-base_path = r"C:\Users\sambe\Desktop\ML Stuff\CT-Train"
+base_path = r""  # folder containing TRAIN.csv and list_of_categories.csv
 
 # Load raw datasets: training data and categories info
 categories_df = pd.read_csv(os.path.join(base_path, 'list_of_categories.csv'))

@@ -32,7 +32,7 @@ set_seed(RANDOM_SEED)
 
 # Base Paths (Using S3 URI)
 
-base_path = "s3://lxeml/CH_Test/"
+base_path = "s3://your-bucket/your-prefix/"
 results_dir = os.path.join(base_path, "results")
 master_encoder_path = os.path.join(base_path, "master_label_encoder.pkl")
 
