@@ -22,7 +22,7 @@ A hybrid deep learning classifier that reads the text of each transaction **and*
 
 ![ML Training Pipeline](mltpl.PNG)
 
-> The diagrams show the full architecture design. LoRA fine-tuning, Optuna hyperparameter tuning, the Model Registry, and Amazon A2I human review are **not** included in this repository. The code here implements the core training and batch prediction pipelines.
+> The diagrams show the full production architecture. After the initial DistilBERT training, the model was fine-tuned with **LoRA** on a frozen DistilBERT, with **Optuna** tuning the learning rate, weight decay, and dropout. Trained models were versioned in the **SageMaker Model Registry**, predictions ran as **Batch Transform** jobs, and low-confidence predictions were routed to **Amazon A2I** for human review, with reviewed results fed back into the training data. The code in this repository covers the core preprocessing, training, and prediction pipelines; the LoRA, Optuna, Model Registry, and A2I components are not included.
 
 ### Training pipeline (`SageMaker/TrainingPipeline.ipynb`)
 1. **Processing job** (`preprocess_train_file_sagemaker.py`): reads raw CSVs from S3, cleans and merges them, encodes categorical fields, removes categories with a single example, and saves the processed data and encoders back to S3.
